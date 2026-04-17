@@ -9,14 +9,26 @@ dotenv.config();
 const app = express();
 
 // ── Middleware ──────────────────────────────────────────────────────────────
-const allowedOrigins = [
-    'http://localhost:5173', // Vite local development
-    'http://localhost:5174', // Fallback local development
-    process.env.CLIENT_URL   // Production frontend URL (from Vercel Env Vars)
-].filter(Boolean);
-
 app.use(cors({
-    origin: allowedOrigins, // Restricts traffic to the domains listed above
+    origin: function (origin, callback) {
+        // Allow requests with no origin (like server-to-server or curl)
+        if (!origin) return callback(null, true);
+
+        const allowedOrigins = ['http://localhost:5173', 'http://localhost:5174'];
+        
+        // Safely add CLIENT_URL from env vars, removing any trailing slash
+        if (process.env.CLIENT_URL) {
+            allowedOrigins.push(process.env.CLIENT_URL.replace(/\/$/, ''));
+        }
+
+        // Allow if origin is in the list OR if it's a Vercel preview/production link
+        if (allowedOrigins.includes(origin) || origin.endsWith('.vercel.app')) {
+            callback(null, true);
+        } else {
+            console.warn(`CORS blocked request from origin: ${origin}`);
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true
