@@ -9,10 +9,17 @@ dotenv.config();
 const app = express();
 
 // ── Middleware ──────────────────────────────────────────────────────────────
+const allowedOrigins = [
+    'http://localhost:5173', // Vite local development
+    'http://localhost:5174', // Fallback local development
+    process.env.CLIENT_URL   // Production frontend URL (from Vercel Env Vars)
+].filter(Boolean);
+
 app.use(cors({
-    origin: '*', // In production, restrict to your frontend domain
-    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    origin: allowedOrigins, // Restricts traffic to the domains listed above
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
