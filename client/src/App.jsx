@@ -9,6 +9,9 @@ import Home from './pages/Home';
 import Doctors from './pages/Doctors';
 import Appointments from './pages/Appointments';
 import Admin from './pages/Admin';
+import AboutUs from './pages/AboutUs';
+import FAQ from './pages/FAQ';
+import ContactUs from './pages/ContactUs';
 
 export default function App() {
     return (
@@ -42,6 +45,33 @@ export default function App() {
                         element={
                             <ProtectedRoute>
                                 <Appointments />
+                            </ProtectedRoute>
+                        }
+                    />
+
+                    <Route
+                        path="/about"
+                        element={
+                            <ProtectedRoute>
+                                <AboutUs />
+                            </ProtectedRoute>
+                        }
+                    />
+
+                    <Route
+                        path="/faq"
+                        element={
+                            <ProtectedRoute>
+                                <FAQ />
+                            </ProtectedRoute>
+                        }
+                    />
+
+                    <Route
+                        path="/contact"
+                        element={
+                            <ProtectedRoute>
+                                <ContactUs />
                             </ProtectedRoute>
                         }
                     />
