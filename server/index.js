@@ -36,6 +36,23 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
+// ── Database Schema Migration ───────────────────────────────────────────────
+const pool = require('./config/db');
+const initDb = async () => {
+    try {
+        await pool.query(`
+            ALTER TABLE doctors 
+            ADD COLUMN IF NOT EXISTS email VARCHAR(255),
+            ADD COLUMN IF NOT EXISTS phone VARCHAR(50),
+            ADD COLUMN IF NOT EXISTS availability_status VARCHAR(50) DEFAULT 'Available';
+        `);
+        console.log('📐 PostgreSQL Schema Check: Verified/altered doctors table (added email, phone, availability_status)');
+    } catch (err) {
+        console.error('❌ Schema Migration Error:', err.message);
+    }
+};
+initDb();
+
 // ── Routes ──────────────────────────────────────────────────────────────────
 app.get('/api/health', (req, res) => {
     res.json({ success: true, status: 'OK', message: '🏥 Hospital Appointment Server is running (PostgreSQL)' });
