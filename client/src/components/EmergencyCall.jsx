@@ -1,9 +1,13 @@
 import { useState } from 'react';
+import { useAuth } from '../context/AuthContext';
 
 const EMERGENCY_NUMBER = '+919994404779';
 
 export default function EmergencyCall() {
+    const { user } = useAuth();
     const [showConfirm, setShowConfirm] = useState(false);
+
+    if (!user) return null;
 
     const handleButtonClick = () => {
         setShowConfirm(true);

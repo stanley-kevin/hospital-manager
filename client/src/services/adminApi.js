@@ -61,3 +61,30 @@ export const AdminStats = {
     stats: () => adminFetch('/admin/stats'),
     activity: () => adminFetch('/admin/activity'),
 };
+
+export const AdminDoctors = {
+    getAll: () => adminFetch('/admin/doctors'),
+    create: (data) =>
+        adminFetch('/admin/doctors', {
+            method: 'POST',
+            body: JSON.stringify(data),
+        }),
+    update: (id, data) =>
+        adminFetch(`/admin/doctors/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(data),
+        }),
+    delete: (id) =>
+        adminFetch(`/admin/doctors/${id}`, {
+            method: 'DELETE',
+        }),
+};
+
+export const AdminPatients = {
+    getAll: () => adminFetch('/admin/patients'),
+    getById: (id) => adminFetch(`/admin/patients/${id}`),
+    delete: (id) =>
+        adminFetch(`/admin/patients/${id}`, {
+            method: 'DELETE',
+        }),
+};

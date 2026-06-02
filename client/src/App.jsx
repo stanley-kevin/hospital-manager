@@ -12,6 +12,8 @@ import Admin from './pages/Admin';
 import AboutUs from './pages/AboutUs';
 import FAQ from './pages/FAQ';
 import ContactUs from './pages/ContactUs';
+import TermsConditions from './pages/TermsConditions';
+import PrivacyPolicy from './pages/PrivacyPolicy';
 
 export default function App() {
     return (
@@ -19,7 +21,10 @@ export default function App() {
             <EmergencyCall />
             <BrowserRouter>
                 <Routes>
-                    <Route path="/login" element={<Login />} />
+                    <Route path="/login" element={<Login initialTab="login" />} />
+                    <Route path="/register" element={<Login initialTab="register" />} />
+                    <Route path="/terms" element={<TermsConditions />} />
+                    <Route path="/privacy" element={<PrivacyPolicy />} />
                     <Route path="/admin-login" element={<AdminLogin />} />
 
                     <Route

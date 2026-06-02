@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import {
     signInWithEmailAndPassword,
     createUserWithEmailAndPassword,
@@ -8,17 +8,21 @@ import {
 import { auth } from '../services/firebase';
 import { useAuth } from '../context/AuthContext';
 
-export default function Login() {
+export default function Login({ initialTab = 'login' }) {
     const navigate = useNavigate();
     const { user } = useAuth();
-    const [tab, setTab] = useState('login');
-    const [form, setForm] = useState({ name: '', email: '', password: '', captcha: false });
+    const [tab, setTab] = useState(initialTab);
+    const [form, setForm] = useState({ name: '', email: '', password: '', termsAccepted: false });
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
 
-    // ── Redirect once Firebase + AuthContext resolves the user ─────────────────
-    // This handles the race condition: we don't navigate() immediately after
-    // signIn; instead we wait for onAuthStateChanged to set the user.
+    // Sync state if initialTab prop changes (e.g. from URL changes)
+    useEffect(() => {
+        setTab(initialTab);
+        setError('');
+    }, [initialTab]);
+
+    // Redirect once Firebase + AuthContext resolves the user
     useEffect(() => {
         if (user) navigate('/', { replace: true });
     }, [user, navigate]);
@@ -30,8 +34,8 @@ export default function Login() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        if (!form.captcha) {
-            setError('Please confirm you are not a robot.');
+        if (tab === 'register' && !form.termsAccepted) {
+            setError('Please agree to the Terms & Conditions and Privacy Policy.');
             return;
         }
         setLoading(true);
@@ -44,7 +48,6 @@ export default function Login() {
                 const cred = await createUserWithEmailAndPassword(auth, form.email, form.password);
                 if (form.name) await updateProfile(cred.user, { displayName: form.name });
             }
-            // Navigation handled by the useEffect above (waits for onAuthStateChanged)
         } catch (err) {
             const msg = {
                 'auth/user-not-found': 'No account found with this email.',
@@ -79,7 +82,11 @@ export default function Login() {
                         <button
                             key={key}
                             type="button"
-                            onClick={() => { setTab(key); setError(''); }}
+                            onClick={() => {
+                                setTab(key);
+                                setError('');
+                                navigate(key === 'login' ? '/login' : '/register', { replace: true });
+                            }}
                             style={{
                                 flex: 1, padding: '.6rem', border: 'none', background: 'none',
                                 cursor: 'pointer', fontWeight: tab === key ? '700' : '400',
@@ -123,20 +130,39 @@ export default function Login() {
                         />
                     </div>
 
-                    <div className="form-group captcha-group">
-                        <label className="checkbox-container">
-                            <input
-                                type="checkbox" name="captcha"
-                                checked={form.captcha} onChange={handleChange}
-                            />
-                            <span className="checkmark" />
-                            <span className="checkbox-label">I am not a robot</span>
-                        </label>
-                    </div>
+                    {/* Terms & Conditions Agreement */}
+                    {tab === 'register' && (
+                        <div className="form-group terms-group">
+                            <label className="checkbox-container">
+                                <input
+                                    type="checkbox"
+                                    name="termsAccepted"
+                                    checked={form.termsAccepted}
+                                    onChange={handleChange}
+                                    required
+                                />
+                                <span className="checkbox-label">
+                                    I agree to the{' '}
+                                    <Link to="/terms" target="_blank" rel="noopener noreferrer" className="terms-link">
+                                        Terms & Conditions
+                                    </Link>{' '}
+                                    and{' '}
+                                    <Link to="/privacy" target="_blank" rel="noopener noreferrer" className="privacy-link">
+                                        Privacy Policy
+                                    </Link>{' '}
+                                    of the Hospital Appointment Booking System.
+                                </span>
+                            </label>
+                        </div>
+                    )}
 
                     {error && <div className="error-message">{error}</div>}
 
-                    <button type="submit" className="btn-login" disabled={loading}>
+                    <button 
+                        type="submit" 
+                        className="btn-login" 
+                        disabled={loading || (tab === 'register' && !form.termsAccepted)}
+                    >
                         {loading ? 'Please wait...' : tab === 'login' ? 'Sign In' : 'Create Account'}
                     </button>
                 </form>
