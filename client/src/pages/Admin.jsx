@@ -11,11 +11,13 @@ const STATUS_BADGE = {
 
 const DEPARTMENTS = [
     'Cardiology',
-    'Neurology',
     'Orthopedics',
-    'Pediatrics',
     'Dermatology',
-    'General Medicine'
+    'Neurology',
+    'Pediatrics',
+    'General Medicine',
+    'Gynecology',
+    'ENT'
 ];
 
 export default function AdminPage() {

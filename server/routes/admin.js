@@ -2,7 +2,6 @@ const express = require('express');
 const User = require('../models/User');
 const Doctor = require('../models/Doctor');
 const Appointment = require('../models/Appointment');
-const pool = require('../config/db');
 const { protectAdmin } = require('../middleware/adminAuth');
 
 const router = express.Router();
@@ -115,8 +114,13 @@ router.delete('/users/:id', protectAdmin, async (req, res, next) => {
 // @access  Admin
 router.get('/doctors', protectAdmin, async (req, res, next) => {
     try {
-        const { rows } = await pool.query('SELECT * FROM doctors ORDER BY name ASC');
-        res.json({ success: true, count: rows.length, doctors: rows });
+        const docs = await Doctor.rawModel.find().sort({ name: 1 });
+        const cleanDocs = docs.map(d => {
+            const obj = d.toObject();
+            obj.id = obj._id.toString();
+            return obj;
+        });
+        res.json({ success: true, count: cleanDocs.length, doctors: cleanDocs });
     } catch (err) {
         next(err);
     }
@@ -131,28 +135,20 @@ router.post('/doctors', protectAdmin, async (req, res, next) => {
         if (!name || !specialty || !location) {
             return res.status(400).json({ success: false, message: 'Name, department (specialty), and location are required' });
         }
-        const is_available = availability_status === 'Available';
         const initials = name ? name.replace('Dr. ', '').split(' ').map(n => n[0]).join('').toUpperCase() : 'DR';
 
-        const { rows } = await pool.query(
-            `INSERT INTO doctors 
-               (name, specialty, designation, location, email, phone, availability_status, is_available, photo_url, initials)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-             RETURNING *`,
-            [
-                name,
-                specialty,
-                designation || null,
-                location,
-                email || null,
-                phone || null,
-                availability_status || 'Available',
-                is_available,
-                photo_url || null,
-                initials
-            ]
-        );
-        res.status(201).json({ success: true, message: 'Doctor added successfully', doctor: rows[0] });
+        const doctor = await Doctor.create({
+            name,
+            specialty,
+            designation,
+            location,
+            email,
+            phone,
+            availability_status,
+            photo_url,
+            initials
+        });
+        res.status(201).json({ success: true, message: 'Doctor added successfully', doctor });
     } catch (err) {
         next(err);
     }
@@ -163,33 +159,11 @@ router.post('/doctors', protectAdmin, async (req, res, next) => {
 // @access  Admin
 router.put('/doctors/:id', protectAdmin, async (req, res, next) => {
     try {
-        const { name, specialty, designation, location, email, phone, availability_status, photo_url } = req.body;
-        const is_available = availability_status !== undefined ? (availability_status === 'Available') : undefined;
-
-        const allowed = ['name', 'specialty', 'designation', 'location', 'email', 'phone', 'availability_status', 'photo_url', 'is_available'];
-        const setClauses = [];
-        const params = [];
-        let i = 1;
-
-        for (const key of allowed) {
-            let val = req.body[key];
-            if (key === 'is_available') val = is_available;
-            if (val !== undefined) {
-                setClauses.push(`${key} = $${i++}`);
-                params.push(val);
-            }
+        const doctor = await Doctor.update(req.params.id, req.body);
+        if (!doctor) {
+            return res.status(404).json({ success: false, message: 'Doctor not found' });
         }
-
-        if (setClauses.length > 0) {
-            setClauses.push(`updated_at = NOW()`);
-            params.push(req.params.id);
-            const sql = `UPDATE doctors SET ${setClauses.join(', ')} WHERE id = $${i} RETURNING *`;
-            const { rows } = await pool.query(sql, params);
-            res.json({ success: true, message: 'Doctor updated successfully', doctor: rows[0] });
-        } else {
-            const { rows } = await pool.query('SELECT * FROM doctors WHERE id = $1', [req.params.id]);
-            res.json({ success: true, doctor: rows[0] });
-        }
+        res.json({ success: true, message: 'Doctor updated successfully', doctor });
     } catch (err) {
         next(err);
     }
@@ -200,11 +174,13 @@ router.put('/doctors/:id', protectAdmin, async (req, res, next) => {
 // @access  Admin
 router.delete('/doctors/:id', protectAdmin, async (req, res, next) => {
     try {
-        const { rows } = await pool.query('SELECT * FROM doctors WHERE id = $1', [req.params.id]);
-        if (rows.length === 0) {
+        const doctor = await Doctor.rawModel.findById(req.params.id);
+        if (!doctor) {
             return res.status(404).json({ success: false, message: 'Doctor not found' });
         }
-        await pool.query('DELETE FROM doctors WHERE id = $1', [req.params.id]);
+        await Doctor.rawModel.findByIdAndDelete(req.params.id);
+        // Cascade delete appointments
+        await Appointment.rawModel.deleteMany({ doctor_id: req.params.id });
         res.json({ success: true, message: 'Doctor deleted successfully' });
     } catch (err) {
         next(err);
@@ -218,10 +194,8 @@ router.delete('/doctors/:id', protectAdmin, async (req, res, next) => {
 // @access  Admin
 router.get('/patients', protectAdmin, async (req, res, next) => {
     try {
-        const { rows } = await pool.query(
-            "SELECT id, name, email, phone, role, created_at FROM users WHERE role = 'user' ORDER BY created_at DESC"
-        );
-        res.json({ success: true, count: rows.length, patients: rows });
+        const patients = await User.findAll({ role: 'user' });
+        res.json({ success: true, count: patients.length, patients });
     } catch (err) {
         next(err);
     }
@@ -232,21 +206,19 @@ router.get('/patients', protectAdmin, async (req, res, next) => {
 // @access  Admin
 router.get('/patients/:id', protectAdmin, async (req, res, next) => {
     try {
-        const userRes = await pool.query(
-            "SELECT id, name, email, phone, role, created_at FROM users WHERE id = $1 AND role = 'user'",
-            [req.params.id]
-        );
-        const patient = userRes.rows[0];
-        if (!patient) {
+        const patient = await User.findById(req.params.id);
+        if (!patient || patient.role !== 'user') {
             return res.status(404).json({ success: false, message: 'Patient not found' });
         }
 
-        const apptsRes = await pool.query(
-            "SELECT * FROM appointments WHERE patient_id = $1 ORDER BY date DESC, time DESC",
-            [req.params.id]
-        );
+        const appts = await Appointment.rawModel.find({ patient_id: req.params.id }).sort({ date: -1, time: -1 });
+        const cleanAppts = appts.map(a => {
+            const obj = a.toObject();
+            obj.id = obj._id.toString();
+            return obj;
+        });
 
-        res.json({ success: true, patient, appointments: apptsRes.rows });
+        res.json({ success: true, patient, appointments: cleanAppts });
     } catch (err) {
         next(err);
     }
@@ -257,14 +229,13 @@ router.get('/patients/:id', protectAdmin, async (req, res, next) => {
 // @access  Admin
 router.delete('/patients/:id', protectAdmin, async (req, res, next) => {
     try {
-        const userRes = await pool.query(
-            "SELECT id FROM users WHERE id = $1 AND role = 'user'",
-            [req.params.id]
-        );
-        if (userRes.rows.length === 0) {
+        const patient = await User.rawModel.findById(req.params.id);
+        if (!patient || patient.role !== 'user') {
             return res.status(404).json({ success: false, message: 'Patient not found' });
         }
-        await pool.query('DELETE FROM users WHERE id = $1', [req.params.id]);
+        await User.rawModel.findByIdAndDelete(req.params.id);
+        // Cascade delete appointments
+        await Appointment.rawModel.deleteMany({ patient_id: req.params.id });
         res.json({ success: true, message: 'Patient deleted successfully' });
     } catch (err) {
         next(err);

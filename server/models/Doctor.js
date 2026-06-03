@@ -1,143 +1,139 @@
-/**
- * Doctor model — PostgreSQL query helpers (replaces Mongoose model)
- */
-const pool = require('../config/db');
+const mongoose = require('mongoose');
+
+const doctorSchema = new mongoose.Schema({
+    name: { type: String, required: true },
+    specialty: { 
+        type: String, 
+        required: true,
+        enum: ['Cardiology', 'Orthopedics', 'Dermatology', 'Neurology', 'Pediatrics', 'General Medicine', 'Gynecology', 'ENT']
+    },
+    designation: { type: String },
+    location: { type: String, required: true },
+    experience: { type: String, default: '5+ years' },
+    availability: { type: String, default: 'Mon–Fri' },
+    rating: { type: Number, default: 4.5, min: 1, max: 5 },
+    is_available: { type: Boolean, default: true },
+    bio: { type: String },
+    photo_url: { type: String },
+    initials: { type: String },
+    email: { type: String },
+    phone: { type: String },
+    availability_status: { type: String, default: 'Available' }
+}, {
+    timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' },
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true }
+});
+
+// Configure Virtuals
+doctorSchema.virtual('id').get(function() {
+    return this._id.toHexString();
+});
+
+const DoctorModel = mongoose.model('Doctor', doctorSchema);
+
+function toCleanJson(doc) {
+    if (!doc) return null;
+    const obj = doc.toObject();
+    obj.id = obj._id.toString();
+    return obj;
+}
 
 const Doctor = {
-    /**
-     * Get all doctors with optional filters.
-     * Supports specialty, location (partial), name (partial).
-     */
     async findAll({ specialty, location, name } = {}) {
-        const conditions = ['is_available = TRUE'];
-        const params = [];
-        let i = 1;
+        const query = { is_available: true };
 
         if (specialty) {
-            conditions.push(`specialty = $${i++}`);
-            params.push(specialty);
+            query.specialty = specialty;
         }
         if (location) {
-            conditions.push(`location ILIKE $${i++}`);
-            params.push(`%${location}%`);
+            query.location = { $regex: location, $options: 'i' };
         }
         if (name) {
-            conditions.push(`name ILIKE $${i++}`);
-            params.push(`%${name}%`);
+            query.name = { $regex: name, $options: 'i' };
         }
 
-        const sql = `SELECT * FROM doctors WHERE ${conditions.join(' AND ')} ORDER BY name ASC`;
-        const { rows } = await pool.query(sql, params);
-        return rows;
+        const docs = await DoctorModel.find(query).sort({ name: 1 });
+        return docs.map(toCleanJson);
     },
 
-    /**
-     * Find a single doctor by primary key.
-     */
     async findById(id) {
-        const { rows } = await pool.query(
-            'SELECT * FROM doctors WHERE id = $1 LIMIT 1',
-            [id]
-        );
-        return rows[0] || null;
+        if (!mongoose.Types.ObjectId.isValid(id)) return null;
+        const doc = await DoctorModel.findById(id);
+        return toCleanJson(doc);
     },
 
-    /**
-     * Create a new doctor record.
-     */
-    async create({ name, specialty, designation, location, experience, availability, rating, is_available, bio, photo_url, initials }) {
-        const { rows } = await pool.query(
-            `INSERT INTO doctors
-               (name, specialty, designation, location, experience, availability, rating, is_available, bio, photo_url, initials)
-             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
-             RETURNING *`,
-            [
-                name,
-                specialty,
-                designation || null,
-                location,
-                experience || '5+ years',
-                availability || 'Mon–Fri',
-                rating ?? 4.5,
-                is_available !== undefined ? is_available : true,
-                bio || null,
-                photo_url || null,
-                initials || null,
-            ]
-        );
-        return rows[0];
+    async create(data) {
+        const availabilityStatus = data.availability_status || 'Available';
+        const isAvailable = availabilityStatus === 'Available';
+
+        const doc = await DoctorModel.create({
+            name: data.name,
+            specialty: data.specialty,
+            designation: data.designation,
+            location: data.location,
+            experience: data.experience,
+            availability: data.availability,
+            rating: data.rating,
+            is_available: isAvailable,
+            bio: data.bio,
+            photo_url: data.photo_url,
+            initials: data.initials,
+            email: data.email,
+            phone: data.phone,
+            availability_status: availabilityStatus
+        });
+        return toCleanJson(doc);
     },
 
-    /**
-     * Update a doctor record by id. Only updates provided fields.
-     */
     async update(id, fields) {
-        const allowed = ['name','specialty','designation','location','experience','availability','rating','is_available','bio','photo_url','initials'];
-        const setClauses = [];
-        const params = [];
-        let i = 1;
-
-        for (const key of allowed) {
-            // Map camelCase from req.body to snake_case column
+        if (!mongoose.Types.ObjectId.isValid(id)) return null;
+        
+        // Map camelCase fields to schema fields if needed
+        const updatePayload = {};
+        const allowed = ['name','specialty','designation','location','experience','availability','rating','is_available','bio','photo_url','initials','email','phone','availability_status'];
+        
+        allowed.forEach((key) => {
             const bodyKey = key === 'is_available' ? 'isAvailable'
                           : key === 'photo_url'    ? 'photoUrl'
                           : key;
             if (fields[bodyKey] !== undefined) {
-                setClauses.push(`${key} = $${i++}`);
-                params.push(fields[bodyKey]);
+                updatePayload[key] = fields[bodyKey];
             } else if (fields[key] !== undefined) {
-                setClauses.push(`${key} = $${i++}`);
-                params.push(fields[key]);
+                updatePayload[key] = fields[key];
             }
+        });
+
+        // If availability_status changes, sync is_available
+        if (updatePayload.availability_status !== undefined) {
+            updatePayload.is_available = updatePayload.availability_status === 'Available';
         }
 
-        if (setClauses.length === 0) return this.findById(id);
-
-        setClauses.push(`updated_at = NOW()`);
-        params.push(id);
-
-        const { rows } = await pool.query(
-            `UPDATE doctors SET ${setClauses.join(', ')} WHERE id = $${i} RETURNING *`,
-            params
-        );
-        return rows[0] || null;
+        const doc = await DoctorModel.findByIdAndUpdate(id, updatePayload, { new: true });
+        return toCleanJson(doc);
     },
 
-    /**
-     * Soft-delete: mark doctor as unavailable.
-     */
     async softDelete(id) {
-        const { rows } = await pool.query(
-            'UPDATE doctors SET is_available = FALSE, updated_at = NOW() WHERE id = $1 RETURNING *',
-            [id]
-        );
-        return rows[0] || null;
+        if (!mongoose.Types.ObjectId.isValid(id)) return null;
+        const doc = await DoctorModel.findByIdAndUpdate(id, { is_available: false, availability_status: 'Unavailable' }, { new: true });
+        return toCleanJson(doc);
     },
 
-    /**
-     * Count available doctors.
-     */
     async count({ is_available } = {}) {
-        let sql = 'SELECT COUNT(*)::int AS count FROM doctors';
-        const params = [];
+        const query = {};
         if (is_available !== undefined) {
-            sql += ' WHERE is_available = $1';
-            params.push(is_available);
+            query.is_available = is_available;
         }
-        const { rows } = await pool.query(sql, params);
-        return rows[0].count;
+        return await DoctorModel.countDocuments(query);
     },
 
-    /**
-     * Get recent doctors (for admin activity feed).
-     */
     async findRecent(limit = 3) {
-        const { rows } = await pool.query(
-            'SELECT id, name, specialty, created_at FROM doctors ORDER BY created_at DESC LIMIT $1',
-            [limit]
-        );
-        return rows;
+        const docs = await DoctorModel.find().sort({ created_at: -1 }).limit(limit);
+        return docs.map(toCleanJson);
     },
+
+    // Export raw model
+    rawModel: DoctorModel
 };
 
 module.exports = Doctor;

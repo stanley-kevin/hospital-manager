@@ -82,8 +82,8 @@ router.post(
             const { doctorId, date, time, patientName, patientPhone, reason } = req.body;
 
             const doctor = await Doctor.findById(doctorId);
-            if (!doctor) {
-                return res.status(404).json({ success: false, message: 'Doctor not found' });
+            if (!doctor || !doctor.is_available) {
+                return res.status(404).json({ success: false, message: 'Doctor not found or currently unavailable' });
             }
 
             // Check for duplicate appointment (same doctor, date, time)
@@ -99,6 +99,7 @@ router.post(
                 patient_id: req.user.id,
                 patient_firebase_uid: req.user.firebase_uid || null,
                 patient_name: patientName,
+                patient_email: req.user.email || '',
                 patient_phone: patientPhone,
                 doctor_id: doctorId,
                 doctor_name: doctor.name,

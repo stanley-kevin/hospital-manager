@@ -48,7 +48,7 @@ export default function BookingModal({ isOpen, onClose, preselectedDoctor = null
             setError('');
 
             if (preselectedDoctor) {
-                setForm((f) => ({ ...f, doctorId: preselectedDoctor.id || '' }));
+                setForm((f) => ({ ...f, doctorId: preselectedDoctor.id || preselectedDoctor._id || '' }));
             } else {
                 setForm({ doctorId: '', date: '', time: '', patientName: '', patientPhone: '', reason: '' });
             }
@@ -64,7 +64,7 @@ export default function BookingModal({ isOpen, onClose, preselectedDoctor = null
         setLoading(true);
         setError('');
         try {
-            const doctor = doctors.find((d) => String(d.id) === String(form.doctorId));
+            const doctor = doctors.find((d) => String(d.id || d._id) === String(form.doctorId));
             await Appointments.book({
                 doctorId: form.doctorId,
                 doctorName: doctor?.name || '',
@@ -117,11 +117,25 @@ export default function BookingModal({ isOpen, onClose, preselectedDoctor = null
                                 <select name="doctorId" required value={form.doctorId} onChange={handleChange} disabled={loadingDoctors}>
                                     <option value="">{loadingDoctors ? 'Loading doctors…' : 'Select a doctor'}</option>
                                     {doctors.map((d) => (
-                                        <option key={d.id} value={d.id}>
+                                        <option key={d.id || d._id} value={d.id || d._id}>
                                             {d.name} — {d.specialty}
                                         </option>
                                     ))}
                                 </select>
+                                {form.doctorId && (
+                                    (() => {
+                                        const selectedDoc = doctors.find((d) => String(d.id || d._id) === String(form.doctorId));
+                                        if (selectedDoc) {
+                                            return (
+                                                <div style={{ fontSize: '0.8rem', color: '#718096', marginTop: '4px' }}>
+                                                    💼 <strong>Department:</strong> {selectedDoc.specialty} 
+                                                    {selectedDoc.designation ? ` | 🎓 Specialization: ${selectedDoc.designation}` : ''}
+                                                </div>
+                                            );
+                                        }
+                                        return null;
+                                    })()
+                                )}
                             </div>
                             <div className="form-row">
                                 <div className="form-group">
