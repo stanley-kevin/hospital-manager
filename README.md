@@ -64,3 +64,27 @@ Health check: `GET /api/health`
 | Frontend | HTML5, CSS3, Vanilla JS |
 | Backend  | Node.js, Express        |
 | Deploy   | Vercel                  |
+
+---
+
+## 🛠️ Done in the Project
+
+Here is a summary of the key fixes and improvements implemented in the system:
+
+1. **Doctors Page Redesign**:
+   - Expanded departments filter list (`General Medicine`, `Gynecology`, `ENT`).
+   - Redesigned doctor cards to display profile photos, specialties, locations, availability status, and contact details (email/phone).
+   - Ensured responsive design rendering clean cards across mobile, tablet, and desktop screen sizes.
+
+2. **Appointment Booking Dropdown**:
+   - Implemented dynamic, real-time doctor select fields in the booking modal.
+   - Added auto-population displaying the selected doctor's department and specialization.
+   - Added backend validation preventing scheduling appointments for inactive/unavailable doctors.
+
+3. **MongoDB Storage**:
+   - Enabled storing patient email directly inside MongoDB appointments.
+   - Fixed naming translation issues between backend database models and the frontend, resolving the bug where doctor names did not show up in the "My Appointments" screen.
+
+4. **Admin Panel Synchronization**:
+   - Stored and updated added/edited/deleted doctor accounts dynamically in MongoDB.
+   - Synced doctor status changes instantly across the Doctor Search, Doctor filters, and Booking options without manual edits.
