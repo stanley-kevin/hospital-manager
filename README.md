@@ -39,7 +39,7 @@ hospitalappoint/
 
 Open `client/login.html` directly in your browser, or serve with VS Code Live Server.
 
-- Login with any email + password (tick the "I am not a robot" checkbox).
+- Login with any email + password (tick the "Terms & condition and Privacy policy" checkbox).
 - Navigate to Doctors, Appointments, and Admin pages from the home screen.
 
 ### Backend
