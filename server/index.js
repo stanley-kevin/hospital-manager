@@ -21,8 +21,8 @@ app.use(cors({
             allowedOrigins.push(process.env.CLIENT_URL.replace(/\/$/, ''));
         }
 
-        // Allow if origin is in the list OR if it's a Vercel preview/production link
-        if (allowedOrigins.includes(origin) || origin.endsWith('.vercel.app')) {
+        // Allow if origin is in the list OR is a localhost development origin OR is a Vercel preview/production link
+        if (allowedOrigins.includes(origin) || origin.startsWith('http://localhost:') || origin.endsWith('.vercel.app')) {
             callback(null, true);
         } else {
             console.warn(`CORS blocked request from origin: ${origin}`);
