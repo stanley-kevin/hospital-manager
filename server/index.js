@@ -14,7 +14,7 @@ app.use(cors({
         // Allow requests with no origin (like server-to-server or curl)
         if (!origin) return callback(null, true);
 
-        const allowedOrigins = ['http://localhost:5173', 'http://localhost:5174', 'https://hospital-manager-fe.vercel.app'];
+        const allowedOrigins = [ 'https://hospital-manager-delta.vercel.app'];
 
         // Safely add CLIENT_URL from env vars, removing any trailing slash
         if (process.env.CLIENT_URL) {
