@@ -14,15 +14,10 @@ app.use(cors({
         // Allow requests with no origin (like server-to-server or curl)
         if (!origin) return callback(null, true);
 
-        const allowedOrigins = [ 'https://hospital-manager-fe.vercel.app'];
+        // Normalize CLIENT_URL from env vars by removing any trailing slash
+        const clientUrl = process.env.CLIENT_URL ? process.env.CLIENT_URL.replace(/\/$/, '') : '';
 
-        // Safely add CLIENT_URL from env vars, removing any trailing slash
-        if (process.env.CLIENT_URL) {
-            allowedOrigins.push(process.env.CLIENT_URL.replace(/\/$/, ''));
-        }
-
-        // Allow if origin is in the list OR is a localhost development origin OR is a Vercel preview/production link
-        if (allowedOrigins.includes(origin) || origin.startsWith('http://localhost:') || origin.endsWith('.vercel.app')) {
+        if (origin === clientUrl) {
             callback(null, true);
         } else {
             console.warn(`CORS blocked request from origin: ${origin}`);
