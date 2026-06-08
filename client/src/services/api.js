@@ -4,7 +4,7 @@
  */
 import { auth } from './firebase';
 
-const API_BASE = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE || 'http://localhost:3001/api';
+const API_BASE = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE || 'https://hospital-appointment-system-backend-rzhl.onrender.com/api';
 
 // ── Get fresh Firebase token ──────────────────────────────────────────────────
 async function getToken() {
