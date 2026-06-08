@@ -43,20 +43,24 @@ function toCleanJson(doc) {
 }
 
 const Appointment = {
-    async findByPatient({ userId, firebaseUid }) {
+    async findByPatient({ userId, firebaseUid, email }) {
         const query = {};
+        const orConditions = [];
+
         if (mongoose.Types.ObjectId.isValid(userId)) {
-            query.$or = [
-                { patient_id: userId }
-            ];
-            if (firebaseUid) {
-                query.$or.push({ patient_firebase_uid: firebaseUid });
-            }
-        } else if (firebaseUid) {
-            query.patient_firebase_uid = firebaseUid;
-        } else {
+            orConditions.push({ patient_id: userId });
+        }
+        if (firebaseUid) {
+            orConditions.push({ patient_firebase_uid: firebaseUid });
+        }
+        if (email) {
+            orConditions.push({ patient_email: email });
+        }
+
+        if (orConditions.length === 0) {
             return [];
         }
+        query.$or = orConditions;
 
         const docs = await AppointmentModel.find(query).sort({ created_at: -1 });
         return docs.map(toCleanJson);

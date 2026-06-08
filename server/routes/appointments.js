@@ -36,6 +36,7 @@ router.get('/', protect, async (req, res, next) => {
         const appointments = await Appointment.findByPatient({
             userId: req.user.id,
             firebaseUid: req.user.firebase_uid || null,
+            email: req.user.email || null,
         });
         res.json({ success: true, count: appointments.length, appointments });
     } catch (err) {
@@ -130,8 +131,10 @@ router.put('/:id', protect, async (req, res, next) => {
             return res.status(404).json({ success: false, message: 'Appointment not found' });
         }
 
-        // Allow owner or admin
-        const isOwner = String(appointment.patient_id) === String(req.user.id);
+        // Allow owner or admin (verify by database ID, Firebase UID, or Email)
+        const isOwner = String(appointment.patient_id) === String(req.user.id) ||
+                        (appointment.patient_firebase_uid && appointment.patient_firebase_uid === req.user.firebase_uid) ||
+                        (appointment.patient_email && appointment.patient_email === req.user.email);
         const isAdmin = req.user.role === 'admin';
 
         if (!isOwner && !isAdmin) {
@@ -172,7 +175,9 @@ router.delete('/:id', protect, async (req, res, next) => {
             return res.status(404).json({ success: false, message: 'Appointment not found' });
         }
 
-        const isOwner = String(appointment.patient_id) === String(req.user.id);
+        const isOwner = String(appointment.patient_id) === String(req.user.id) ||
+                        (appointment.patient_firebase_uid && appointment.patient_firebase_uid === req.user.firebase_uid) ||
+                        (appointment.patient_email && appointment.patient_email === req.user.email);
         const isAdmin = req.user.role === 'admin';
 
         if (!isOwner && !isAdmin) {
