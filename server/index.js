@@ -19,7 +19,8 @@ app.use(cors({
             ? process.env.CLIENT_URL.split(',').map(url => url.trim().replace(/\/$/, ''))
             : [];
 
-        if (allowedOrigins.includes(origin)) {
+        // Always allow localhost origins, or check if the origin is in the allowed list
+        if (origin.startsWith('http://localhost:') || allowedOrigins.includes(origin)) {
             callback(null, true);
         } else {
             console.warn(`CORS blocked request from origin: ${origin}`);

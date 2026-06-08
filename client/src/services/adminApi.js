@@ -3,7 +3,7 @@
  * Token stored in localStorage under 'adminToken'.
  */
 
-const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:3001/api';
+const API_BASE = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE || 'http://localhost:3001/api';
 
 function getAdminToken() {
     return localStorage.getItem('adminToken');

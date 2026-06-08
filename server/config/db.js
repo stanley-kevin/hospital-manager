@@ -1,12 +1,23 @@
 const mongoose = require('mongoose');
 
 const connectDB = async () => {
+    const primaryUri = process.env.MONGODB_URI;
+    const fallbackUri = 'mongodb://localhost:27017/hospitalappoint';
+
     try {
-        const conn = await mongoose.connect(process.env.MONGODB_URI);
-        console.log(`✅ MongoDB Connected: ${conn.connection.host}`);
+        console.log('⏳ Connecting to primary database...');
+        const conn = await mongoose.connect(primaryUri);
+        console.log(`✅ MongoDB Connected (Primary): ${conn.connection.host}`);
     } catch (err) {
-        console.error(`❌ MongoDB connection error: ${err.message}`);
-        process.exit(1);
+        console.warn(`⚠️  Primary database connection failed: ${err.message}`);
+        console.log(`⏳ Attempting fallback connection to local MongoDB: ${fallbackUri}`);
+        try {
+            const conn = await mongoose.connect(fallbackUri);
+            console.log(`✅ MongoDB Connected (Local Fallback): ${conn.connection.host}`);
+        } catch (fallbackErr) {
+            console.error(`❌ Fallback database connection failed: ${fallbackErr.message}`);
+            process.exit(1);
+        }
     }
 };
 
