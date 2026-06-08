@@ -14,10 +14,12 @@ app.use(cors({
         // Allow requests with no origin (like server-to-server or curl)
         if (!origin) return callback(null, true);
 
-        // Normalize CLIENT_URL from env vars by removing any trailing slash
-        const clientUrl = process.env.CLIENT_URL ? process.env.CLIENT_URL.replace(/\/$/, '') : '';
+        // Retrieve client URLs from env, split by comma, and normalize them by removing trailing slashes
+        const allowedOrigins = process.env.CLIENT_URL
+            ? process.env.CLIENT_URL.split(',').map(url => url.trim().replace(/\/$/, ''))
+            : [];
 
-        if (origin === clientUrl) {
+        if (allowedOrigins.includes(origin)) {
             callback(null, true);
         } else {
             console.warn(`CORS blocked request from origin: ${origin}`);
