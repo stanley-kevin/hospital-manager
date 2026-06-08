@@ -1,0 +1,10 @@
+{
+  "name": "hospital-appointment-system-root",
+  "version": "1.0.0",
+  "description": "Root package manager for Hospital Appointment System",
+  "scripts": {
+    "install-all": "npm install --prefix client && npm install --prefix server",
+    "server": "npm run dev --prefix server",
+    "client": "npm run dev --prefix client"
+  }
+}
