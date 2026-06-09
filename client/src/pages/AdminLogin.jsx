@@ -37,18 +37,7 @@ export default function AdminLogin() {
                     <p>Hospital Management System</p>
                 </div>
 
-                {/* Credentials hint */}
-                <div className="admin-credentials-hint">
-                    <span className="hint-label">🔑 Default Credentials</span>
-                    <div className="hint-row">
-                        <span>Email:</span>
-                        <code>admin@hospital.com</code>
-                    </div>
-                    <div className="hint-row">
-                        <span>Password:</span>
-                        <code>Admin@123</code>
-                    </div>
-                </div>
+
 
                 <form className="admin-login-form" onSubmit={handleSubmit}>
                     <div className="al-form-group">
