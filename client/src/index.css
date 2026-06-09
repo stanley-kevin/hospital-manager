@@ -7,6 +7,10 @@
   padding: 0;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 :root {
   --primary: #2b6cb0;
   --primary-dark: #1e4e8c;
@@ -2848,5 +2852,17 @@ p {
     padding: 2rem 1.5rem;
   }
 }
+
+/* ── Scroll Reveal Animations ──────────────────────────────────────────────── */
+.scroll-reveal {
+  transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform, opacity;
+}
+
+.scroll-reveal:not(.visible) {
+  opacity: 0;
+  transform: translateY(24px);
+}
+
 
 

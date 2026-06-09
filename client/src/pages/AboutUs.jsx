@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import Navbar from '../components/Navbar';
 
 const doctors = [
@@ -17,6 +18,36 @@ const services = [
 ];
 
 export default function AboutUs() {
+    const containerRef = useRef(null);
+
+    useEffect(() => {
+        const container = containerRef.current;
+        if (!container) return;
+
+        const cards = container.querySelectorAll('.scroll-reveal');
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+
+        const observer = new IntersectionObserver((entries, obs) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                    obs.unobserve(entry.target);
+                }
+            });
+        }, observerOptions);
+
+        cards.forEach(card => {
+            observer.observe(card);
+        });
+
+        return () => {
+            observer.disconnect();
+        };
+    }, []);
+
     return (
         <>
             <Navbar />
@@ -166,14 +197,15 @@ export default function AboutUs() {
                         <h2>Our Core Values</h2>
                         <p>The principles that guide every decision we make.</p>
                     </div>
-                    <div className="values-grid">
+                    <div className="values-grid" ref={containerRef}>
                         {[
                             { icon: '💙', title: 'Compassion', desc: 'We treat every patient with empathy, dignity, and respect.' },
                             { icon: '🔬', title: 'Innovation', desc: 'We embrace the latest technology and research to improve outcomes.' },
                             { icon: '🤝', title: 'Integrity', desc: 'We act with honesty and transparency in all patient interactions.' },
                             { icon: '🏆', title: 'Excellence', desc: 'We set the highest standards and continuously exceed expectations.' },
+                            { icon: '🛡️', title: 'Trust', desc: 'We build long-term relationships by providing reliable, safe, and patient-focused healthcare services.' },
                         ].map((v) => (
-                            <div key={v.title} className="value-card">
+                            <div key={v.title} className="value-card scroll-reveal">
                                 <div className="value-icon">{v.icon}</div>
                                 <h3>{v.title}</h3>
                                 <p>{v.desc}</p>
